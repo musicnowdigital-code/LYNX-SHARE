@@ -424,7 +424,7 @@ private:
     IconButton pluginPickerButton { "pluginPicker", Icon::pluginPicker };
     GlobalGridBox gridBox; // global grid of the editors (see ui/EditorTools.h)
     std::vector<int> dividers; // x positions of the toolbar panel separators
-    juce::Rectangle<int> snapLabelArea, patternLabelArea, titleArea, transportArea;
+    juce::Rectangle<int> snapLabelArea, patternLabelArea, titleArea, transportArea, brandArea;
     std::unique_ptr<ui::QuickTipWindow> quickTips; // the tool names under the mouse (ui/HintBar.h)
     void setQuickTips();
     void showLanguageChoice (const juce::String& id);

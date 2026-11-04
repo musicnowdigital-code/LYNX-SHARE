@@ -970,8 +970,8 @@ public:
             const auto i = args.indexOf ("--menu-entry");
             const auto on = args[i + 1].unquoted() != "off";
             const auto ok = lynx::runningAsAppImage() && lynx::setAppImageMenuEntry (on);
-            std::fprintf (ok ? stdout : stderr, "%s\n", ok ? (on ? "LYNX SHARE added to the applications menu" : "LYNX SHARE removed from the applications menu")
-                                                         : "only the LYNX SHARE AppImage on Linux can do this");
+            std::fprintf (ok ? stdout : stderr, "%s\n", ok ? (on ? "Buzz Beat Studio added to the applications menu" : "Buzz Beat Studio removed from the applications menu")
+                                                         : "only the Buzz Beat Studio AppImage on Linux can do this");
             setApplicationReturnValue (ok ? 0 : 1);
             quit();
             return;
@@ -1334,7 +1334,7 @@ public:
 
     void createMainWindow()
     {
-        mainWindow = std::make_unique<MainWindow> ("LYNX SHARE", *engine); // the brand; getApplicationName() stays "LYNX" (an id: instance lock, X11 WM_CLASS, ALSA client)
+        mainWindow = std::make_unique<MainWindow> ("Buzz Beat Studio", *engine); // the brand; getApplicationName() stays "LYNX" (an id: instance lock, X11 WM_CLASS, ALSA client)
         lynx::setMainWindowForOwnership (mainWindow.get());
         lynx::applyRenderingChoice (*mainWindow); // (GPU rendering off: GDI; round 157a)
         lynx::startRenderingWatch();
@@ -1357,7 +1357,7 @@ public:
             return;
         }
         auto message = lynx::tr ("The last session ended without closing normally. Last step: {0}. Backup copies of your project are in "
-                                 "LYNX SHARE's autosave folder; details in crash-history.log.",
+                                 "Buzz Beat Studio's autosave folder; details in crash-history.log.",
                                  { uncleanLastStep });
         uncleanLastStep.clear();
         const auto cause = uncleanCause();
@@ -1371,7 +1371,7 @@ public:
         {
             lynx::setGpuRenderingEnabled (false);
             message << "\n\n"
-                    << lynx::tr ("The crash was in the graphics driver ({0}). LYNX SHARE now draws its windows without the GPU; you can turn GPU "
+                    << lynx::tr ("The crash was in the graphics driver ({0}). Buzz Beat Studio now draws its windows without the GPU; you can turn GPU "
                                  "rendering back on in Options > General settings (after a driver update, for example).",
                                  { cause.driverModule });
         }
@@ -1418,10 +1418,10 @@ public:
         if (separatePlugin.isNotEmpty())
         {
             juce::AlertWindow::showOkCancelBox (
-                juce::MessageBoxIconType::WarningIcon, lynx::tr ("LYNX SHARE closed unexpectedly"),
+                juce::MessageBoxIconType::WarningIcon, lynx::tr ("Buzz Beat Studio closed unexpectedly"),
                 message + "\n\n"
                     + lynx::tr ("It happened while the window of {0} was opening{1}. Run {0} in a separate process from now on? If it "
-                                "crashes again, only the plugin stops and LYNX SHARE keeps running (Plugin wrapper menu: \"Always run in a "
+                                "crashes again, only the plugin stops and Buzz Beat Studio keeps running (Plugin wrapper menu: \"Always run in a "
                                 "separate process\").",
                                 { separatePlugin, cause.gpuDriver ? lynx::tr (" (in the graphics driver, {0})", { cause.driverModule }) : juce::String() }),
                 lynx::tr ("Run separately"), lynx::tr ("No"), nullptr,
@@ -1431,7 +1431,7 @@ public:
                 }));
             return;
         }
-        juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, lynx::tr ("LYNX SHARE closed unexpectedly"), message);
+        juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, lynx::tr ("Buzz Beat Studio closed unexpectedly"), message);
     }
 
     // --opentime: after the start-up file was handed to the window
@@ -7794,8 +7794,8 @@ private:
             {
                 // the Settings pages, with credits like a project imported from FL would carry
                 offline.editSong ([] (lynx::Song& s) {
-                    s.info = { "Night Drive", "LYNX SHARE demo", "Synthwave", "https://lynx-share.com",
-                               "Made with LYNX SHARE.\nDrums and bass from the Channel Rack, pads from the Browser.", false };
+                    s.info = { "Night Drive", "Buzz Beat Studio demo", "Synthwave", "https://lynx-share.com",
+                               "Made with Buzz Beat Studio.\nDrums and bass from the Channel Rack, pads from the Browser.", false };
                 }, false);
                 saveWindow (lynx::makeSettingsPanel (offline, lynx::SettingsPage::project), "-settings-project.png");
                 saveWindow (lynx::makeSettingsPanel (offline, lynx::SettingsPage::info), "-settings-info.png");

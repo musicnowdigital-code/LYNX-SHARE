@@ -7,8 +7,8 @@
 
 #include "core/Instruments.h"
 
-// The start-up splash screen: the pepper drops in with a bounce on a dark card, "LYNX" and the
-// version slide in, a thin accent bar fills while the app initialises, then it fades out. It is shown
+// The start-up splash screen: official BUZZWORTHY artwork and the Buzz Beat Studio name
+// fade in above a progress bar while the app initialises, then the card fades out. It is shown
 // only by the normal UI start (never in the command-line modes) and can be turned off, as can the
 // start-up sound, in Options (stored in %APPDATA%\LYNX\ui-options.txt).
 namespace lynx
@@ -36,7 +36,7 @@ public:
     // when the card appeared — the window comes ~1 s sooner)
     static constexpr double minimumDuration = 2.1;
     // How long the card stays given that the process started `sinceProcessStart` seconds before its clock: the rest of
-    // minimumDuration, but at least `landing` (the pepper's drop, after which the main window is built).
+    // minimumDuration, but at least `landing` (the logo fade-in, after which the main window is built).
     static double remainingDuration (double sinceProcessStart, double landing = 1.05);
     // the progress bar fills over this (default minimumDuration)
     void setBarDuration (double seconds) { barDuration = seconds; }
@@ -60,7 +60,7 @@ public:
 private:
     void timerCallback() override;
 
-    juce::Image pepper;
+    juce::Image brandLogo;
     juce::String status;
     double time = 0.0;
     double clockStartMs = -1.0, fadeStartMs = -1.0;

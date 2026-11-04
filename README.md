@@ -1,3 +1,14 @@
+# Buzz Beat Studio
+
+Custom BUZZWORTHY edition of LYNX SHARE, maintained by Buzzworthy Media.
+The startup screen and persistent upper-left toolbar logo use the official gold BUZZWORTHY artwork.
+Builds retain the `LYNX` executable/target and `.lynx` project format for compatibility.
+
+Based on [Ka1-S/LYNX-SHARE](https://github.com/Ka1-S/LYNX-SHARE); original attribution,
+license, and documentation follow. The supplied BUZZWORTHY logo is used unchanged.
+
+---
+
 <p align="center">
   <img src="docs/img/logo.png" alt="LYNX SHARE logo" width="128" height="128">
 </p>
