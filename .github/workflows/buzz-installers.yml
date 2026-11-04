@@ -1,0 +1,220 @@
+name: Buzz Beat Studio installers
+
+on:
+  push:
+    branches: [buzz-beat-studio-installers]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buzz-installers-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  ZIG_VERSION: 0.14.1
+  ZIG_SHA256: 24aeeec8af16c381934a6cd7d95c807a8cb2cf7df9fa40d359aa884195c4716c
+  JUCE_VERSION: 8.0.4
+  JUCE_SHA256: 0effe9823a6fd8a4f98e5c08be7d308350e417b2d15dcf34011e778fefbbf005
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      label: ${{ steps.version.outputs.label }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 'Version (single source is CMakeLists.txt)'
+        id: version
+        shell: bash
+        run: |
+          version="$(sed -n 's/^project(LYNX VERSION \([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' CMakeLists.txt)"
+          [[ -n "$version" ]] || { echo "::error::no version in CMakeLists.txt"; exit 1; }
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            tag="${GITHUB_REF_NAME#v}"
+            [[ "$tag" == "$version" || "$tag" == "$version"-* ]] || { echo "::error::tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
+            label="$tag"
+          else
+            label="$version-${GITHUB_SHA::7}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "label=$label" >> "$GITHUB_OUTPUT"
+          echo "LYNX $version (package label $label)"
+
+  macos:
+    name: macOS (universal dmg)
+    needs: version
+    runs-on: macos-15
+    env:
+      LABEL: ${{ needs.version.outputs.label }}
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build dependencies
+        run: brew list ninja > /dev/null 2>&1 || brew install ninja
+
+      - name: JUCE (checksum verified)
+        run: |
+          curl -fsSL -o juce.tar.gz "https://github.com/juce-framework/JUCE/archive/refs/tags/$JUCE_VERSION.tar.gz"
+          echo "$JUCE_SHA256  juce.tar.gz" | shasum -a 256 -c -
+          mkdir -p "$RUNNER_TEMP/juce" && tar xzf juce.tar.gz -C "$RUNNER_TEMP/juce" --strip-components 1 && rm juce.tar.gz
+
+      - name: Build (universal)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_SOURCE_DIR_JUCE="$RUNNER_TEMP/juce" \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          cmake --build build --target LYNX -- -k 0
+          lipo -info build/LYNX_artefacts/Release/LYNX.app/Contents/MacOS/LYNX
+
+      - name: Self-test and demo project
+        run: |
+          bin=build/LYNX_artefacts/Release/LYNX.app/Contents/MacOS/LYNX
+          "$bin" --selftest "$PWD/selftest.txt" "$PWD/selftest-demo.lynx" || true
+          cat selftest.txt
+          grep -q '^result=OK' selftest.txt
+          "$bin" --showcase "$PWD/Demo.lynx" || true
+          test -s Demo.lynx
+
+      - name: Package
+        run: ./scripts/package-macos.sh build/LYNX_artefacts/Release/LYNX.app "$LABEL" dist Demo.lynx
+
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: Buzz-Beat-Studio-Mac-installer
+          path: dist/*
+          if-no-files-found: error
+
+  build:
+    name: Build Windows after Mac
+    needs: [version, macos]
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@v5
+
+
+      # Only the downloaded toolchain is cached (checksums verified on download); the app is always built from scratch.
+      - name: Cache toolchain
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: ~/opt
+          key: toolchain-zig${{ env.ZIG_VERSION }}-juce${{ env.JUCE_VERSION }}-${{ env.ZIG_SHA256 }}-${{ env.JUCE_SHA256 }}
+
+      - name: Download Zig and JUCE
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          mkdir -p ~/opt && cd ~/opt
+          curl -fsSL -o zig.tar.xz "https://ziglang.org/download/$ZIG_VERSION/zig-x86_64-linux-$ZIG_VERSION.tar.xz"
+          echo "$ZIG_SHA256  zig.tar.xz" | sha256sum -c -
+          tar xf zig.tar.xz && rm zig.tar.xz
+          curl -fsSL -o juce.tar.gz "https://github.com/juce-framework/JUCE/archive/refs/tags/$JUCE_VERSION.tar.gz"
+          echo "$JUCE_SHA256  juce.tar.gz" | sha256sum -c -
+          tar xzf juce.tar.gz && mv "JUCE-$JUCE_VERSION" "juce-$JUCE_VERSION" && rm juce.tar.gz
+
+      - name: Build (Zig cross compile)
+        shell: bash
+        run: |
+          ZIG="$HOME/opt/zig-x86_64-linux-$ZIG_VERSION/zig" JUCE_DIR="$HOME/opt/juce-$JUCE_VERSION" OUT=build-win \
+            ./scripts/build-windows-zig.sh 2>&1 | grep -v '^1 warning generated\.$'
+          sha256sum build-win/LYNX.exe
+          ./scripts/fetch-onnxruntime.sh windows build-win
+
+      - name: Upload unsigned LYNX.exe
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: LYNX-unsigned
+          path: |
+            build-win/LYNX.exe
+            build-win/lynx-asio.dll
+            build-win/lynx-asio32.dll
+            build-win/onnxruntime.dll
+          if-no-files-found: error
+
+  package:
+    name: Self-test and package
+    needs: [version, build]
+    runs-on: windows-latest
+    env:
+      LABEL: ${{ needs.version.outputs.label }}
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download LYNX.exe
+        uses: actions/download-artifact@v8
+        with:
+          name: LYNX-unsigned
+          path: bin
+
+      - name: Check version resource and signature
+        shell: pwsh
+        run: |
+          $exe = Get-Item bin\LYNX.exe
+          $v = $exe.VersionInfo
+          $v | Format-List ProductName, CompanyName, FileVersion, ProductVersion, LegalCopyright
+          if ($v.ProductName -ne 'Buzz Beat Studio' -or $v.ProductVersion -ne $env:VERSION) { throw "version resource mismatch" }
+          $sig = Get-AuthenticodeSignature $exe.FullName
+          "Authenticode: $($sig.Status) $($sig.SignerCertificate.Subject)"
+
+      - name: Self-test
+        shell: pwsh
+        run: |
+          $p = Start-Process bin\LYNX.exe -ArgumentList '--selftest', "$PWD\selftest.txt", "$PWD\selftest-demo.lynx" -Wait -PassThru
+          Get-Content selftest.txt
+          if ($p.ExitCode -ne 0 -or -not (Select-String -Path selftest.txt -Pattern '^result=OK' -Quiet)) { throw "self-test failed (exit $($p.ExitCode))" }
+
+      # every built-in effect / instrument window opened as the mixer and Channel rack open them, with old-project and
+      # random states; fails on a crash or a frozen UI (round 157a: the Parametric EQ froze LYNX when opened)
+      - name: Editor windows test
+        shell: pwsh
+        run: |
+          $p = Start-Process bin\LYNX.exe -ArgumentList '--opentest', "$PWD\opentest.txt" -Wait -PassThru
+          Get-Content opentest.txt -Tail 5
+          if ($p.ExitCode -ne 0 -or -not (Select-String -Path opentest.txt -Pattern '^result=OK' -Quiet)) { Get-Content opentest.txt | Select-String -Pattern 'FAIL|HANG'; throw "editor windows test failed (exit $($p.ExitCode))" }
+
+      - name: Portable package and installer
+        shell: pwsh
+        run: |
+          $name = "Buzz-Beat-Studio-$env:LABEL-windows-x64"
+          New-Item -ItemType Directory -Force "pkg\$name" | Out-Null
+          $p = Start-Process bin\LYNX.exe -ArgumentList '--showcase', "$PWD\pkg\$name\Demo.lynx" -Wait -PassThru
+          if (-not (Test-Path "pkg\$name\Demo.lynx")) { throw "showcase did not write Demo.lynx (exit $($p.ExitCode))" }
+          Copy-Item bin\LYNX.exe, bin\onnxruntime.dll, LICENSE, THIRD_PARTY.md, PRIVACY.md "pkg\$name\"
+          # LYNX ASIO driver and its registration helpers (REA round 97)
+          if (Test-Path bin\lynx-asio.dll) { Copy-Item bin\lynx-asio.dll, "asio\Register LYNX ASIO.bat", "asio\Unregister LYNX ASIO.bat" "pkg\$name\" }
+          if (Test-Path bin\lynx-asio32.dll) { Copy-Item bin\lynx-asio32.dll "pkg\$name\" }  # 32-bit hosts (round 106)
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path "pkg\$name" -DestinationPath "dist\$name.zip"
+          Copy-Item bin\LYNX.exe dist\
+          # per-user installer (NSIS is preinstalled on GitHub's Windows images)
+          $nsis = (Get-Command makensis -ErrorAction SilentlyContinue).Source
+          if (-not $nsis) { $nsis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe" }
+          if (-not (Test-Path $nsis)) { choco install nsis -y --no-progress; $nsis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe" }
+          & $nsis -V2 -INPUTCHARSET UTF8 "-DVERSION=$env:VERSION" "-DSTAGE=$PWD\pkg\$name" "-DOUTFILE=$PWD\dist\Buzz-Beat-Studio-$env:LABEL-setup-x64.exe" `
+            "-DICON=$PWD\resources\LYNX.ico" resources\installer\LYNX.nsi
+          if ($LASTEXITCODE -ne 0) { throw "makensis failed ($LASTEXITCODE)" }
+          # the installer installs and uninstalls cleanly (per user, into a scratch folder)
+          $inst = "$env:RUNNER_TEMP\lynx-inst"
+          Start-Process "dist\Buzz-Beat-Studio-$env:LABEL-setup-x64.exe" -ArgumentList '/S', "/D=$inst" -Wait
+          if (-not (Test-Path "$inst\LYNX.exe")) { throw "installer did not install LYNX.exe" }
+          Start-Process "$inst\Uninstall.exe" -ArgumentList '/S', "_?=$inst" -Wait
+          if (Test-Path "$inst\LYNX.exe") { throw "uninstaller left LYNX.exe" }
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: Buzz-Beat-Studio-Windows-installer
+          path: |
+            dist/*setup-x64.exe
+            dist/*windows-x64.zip
+          if-no-files-found: error

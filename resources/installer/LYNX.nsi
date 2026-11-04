@@ -1,5 +1,5 @@
-; LYNX SHARE per-user Windows installer (NSIS 3). Built by scripts/make-installer.sh; no admin rights needed.
-; Installs to %LOCALAPPDATA%\Programs\LYNX, adds Start-menu (and optional desktop) shortcuts, registers .lynx
+; Buzz Beat Studio per-user Windows installer (NSIS 3). Built by scripts/make-installer.sh; no admin rights needed.
+; Installs to %LOCALAPPDATA%\Programs\BuzzBeatStudio, adds Start-menu (and optional desktop) shortcuts, registers .lynx
 ; projects and offers LYNX in Explorer's "Open with" for .flp without taking over FL Studio's default.
 ; The uninstaller removes only what this installer added (settings in %APPDATA%\LYNX stay).
 ;
@@ -15,19 +15,19 @@ ManifestDPIAware true
 !include "LogicLib.nsh"
 !include "Sections.nsh"
 
-!define APP "LYNX SHARE" ; the product name shown (v0.1.20 rename); folders, keys and LYNX.exe keep "LYNX"
-!define PROGID "LYNX.Project"
-!define FLP_PROGID "LYNX.FLProject"
-!define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\LYNX"
+!define APP "Buzz Beat Studio" ; the product name shown (v0.1.20 rename); folders, keys and LYNX.exe keep "LYNX"
+!define PROGID "BuzzBeatStudio.Project"
+!define FLP_PROGID "BuzzBeatStudio.FLProject"
+!define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\BuzzBeatStudio"
 
 Name "${APP} ${VERSION}"
 OutFile "${OUTFILE}"
-InstallDir "$LOCALAPPDATA\Programs\LYNX"
-InstallDirRegKey HKCU "Software\LYNX" "InstallDir"
-BrandingText "LYNX SHARE ${VERSION}"
+InstallDir "$LOCALAPPDATA\Programs\BuzzBeatStudio"
+InstallDirRegKey HKCU "Software\BuzzBeatStudio" "InstallDir"
+BrandingText "Buzz Beat Studio ${VERSION}"
 VIProductVersion "${VERSION}.0"
-VIAddVersionKey "ProductName" "LYNX SHARE"
-VIAddVersionKey "FileDescription" "LYNX SHARE installer"
+VIAddVersionKey "ProductName" "Buzz Beat Studio"
+VIAddVersionKey "FileDescription" "Buzz Beat Studio installer"
 VIAddVersionKey "ProductVersion" "${VERSION}"
 VIAddVersionKey "FileVersion" "${VERSION}"
 VIAddVersionKey "LegalCopyright" "AGPL-3.0"
@@ -50,18 +50,18 @@ VIAddVersionKey "LegalCopyright" "AGPL-3.0"
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "PortugueseBR"
 
-LangString RunLynx ${LANG_ENGLISH} "Start LYNX SHARE"
-LangString RunLynx ${LANG_PORTUGUESEBR} "Abrir o LYNX SHARE"
-LangString SecApp ${LANG_ENGLISH} "LYNX SHARE (required)"
-LangString SecApp ${LANG_PORTUGUESEBR} "LYNX SHARE (obrigatório)"
+LangString RunLynx ${LANG_ENGLISH} "Start Buzz Beat Studio"
+LangString RunLynx ${LANG_PORTUGUESEBR} "Abrir o Buzz Beat Studio"
+LangString SecApp ${LANG_ENGLISH} "Buzz Beat Studio (required)"
+LangString SecApp ${LANG_PORTUGUESEBR} "Buzz Beat Studio (obrigatório)"
 LangString SecDesktop ${LANG_ENGLISH} "Desktop shortcut"
 LangString SecDesktop ${LANG_PORTUGUESEBR} "Atalho na área de trabalho"
-LangString SecFlp ${LANG_ENGLISH} "Offer LYNX SHARE in $\"Open with$\" for FL Studio projects (.flp)"
-LangString SecFlp ${LANG_PORTUGUESEBR} "Oferecer o LYNX SHARE em $\"Abrir com$\" para projetos do FL Studio (.flp)"
-LangString FlpType ${LANG_ENGLISH} "FL Studio project (LYNX SHARE)"
-LangString FlpType ${LANG_PORTUGUESEBR} "Projeto do FL Studio (LYNX SHARE)"
-LangString StillRunning ${LANG_ENGLISH} "LYNX SHARE is running. Close it and click Retry."
-LangString StillRunning ${LANG_PORTUGUESEBR} "O LYNX SHARE está aberto. Feche-o e clique em Repetir."
+LangString SecFlp ${LANG_ENGLISH} "Offer Buzz Beat Studio in $\"Open with$\" for FL Studio projects (.flp)"
+LangString SecFlp ${LANG_PORTUGUESEBR} "Oferecer o Buzz Beat Studio em $\"Abrir com$\" para projetos do FL Studio (.flp)"
+LangString FlpType ${LANG_ENGLISH} "FL Studio project (Buzz Beat Studio)"
+LangString FlpType ${LANG_PORTUGUESEBR} "Projeto do FL Studio (Buzz Beat Studio)"
+LangString StillRunning ${LANG_ENGLISH} "Buzz Beat Studio is running. Close it and click Retry."
+LangString StillRunning ${LANG_PORTUGUESEBR} "O Buzz Beat Studio está aberto. Feche-o e clique em Repetir."
 
 Function .onInit
     ; the installer's language follows Windows
@@ -105,24 +105,24 @@ Section "!$(SecApp)" SecMain
     WriteUninstaller "$INSTDIR\Uninstall.exe"
 
     Delete "$SMPROGRAMS\LYNX.lnk" ; the shortcut before the v0.1.20 rename
-    CreateShortCut "$SMPROGRAMS\LYNX SHARE.lnk" "$INSTDIR\LYNX.exe" "" "$INSTDIR\LYNX.exe" 0
+    CreateShortCut "$SMPROGRAMS\Buzz Beat Studio.lnk" "$INSTDIR\LYNX.exe" "" "$INSTDIR\LYNX.exe" 0
 
     ; .lynx projects (LYNX itself keeps this up to date at every start, too)
     WriteRegStr HKCU "Software\Classes\.lynx" "" "${PROGID}"
     WriteRegStr HKCU "Software\Classes\.lynx" "Content Type" "application/x-lynx-project"
-    WriteRegStr HKCU "Software\Classes\${PROGID}" "" "LYNX SHARE Project"
+    WriteRegStr HKCU "Software\Classes\${PROGID}" "" "Buzz Beat Studio Project"
     WriteRegStr HKCU "Software\Classes\${PROGID}\DefaultIcon" "" '"$INSTDIR\LYNX.exe",-2'
     WriteRegStr HKCU "Software\Classes\${PROGID}\shell\open\command" "" '"$INSTDIR\LYNX.exe" "%1"'
     ; "Open with" list entry for the app
-    WriteRegStr HKCU "Software\Classes\Applications\LYNX.exe" "FriendlyAppName" "LYNX SHARE"
+    WriteRegStr HKCU "Software\Classes\Applications\LYNX.exe" "FriendlyAppName" "Buzz Beat Studio"
     WriteRegStr HKCU "Software\Classes\Applications\LYNX.exe\shell\open\command" "" '"$INSTDIR\LYNX.exe" "%1"'
     WriteRegStr HKCU "Software\Classes\Applications\LYNX.exe\SupportedTypes" ".lynx" ""
 
-    WriteRegStr HKCU "Software\LYNX" "InstallDir" "$INSTDIR"
-    WriteRegStr HKCU "${UNINST_KEY}" "DisplayName" "LYNX SHARE"
+    WriteRegStr HKCU "Software\BuzzBeatStudio" "InstallDir" "$INSTDIR"
+    WriteRegStr HKCU "${UNINST_KEY}" "DisplayName" "Buzz Beat Studio"
     WriteRegStr HKCU "${UNINST_KEY}" "DisplayVersion" "${VERSION}"
-    WriteRegStr HKCU "${UNINST_KEY}" "Publisher" "LYNX SHARE"
-    WriteRegStr HKCU "${UNINST_KEY}" "URLInfoAbout" "https://github.com/Ka1-S/LYNX-SHARE"
+    WriteRegStr HKCU "${UNINST_KEY}" "Publisher" "Buzz Beat Studio"
+    WriteRegStr HKCU "${UNINST_KEY}" "URLInfoAbout" "https://github.com/musicnowdigital-code/LYNX-SHARE"
     WriteRegStr HKCU "${UNINST_KEY}" "DisplayIcon" '"$INSTDIR\LYNX.exe",0'
     WriteRegStr HKCU "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
     WriteRegStr HKCU "${UNINST_KEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
@@ -136,7 +136,7 @@ SectionEnd
 Section "$(SecDesktop)" SecDesktop
     SetShellVarContext current
     Delete "$DESKTOP\LYNX.lnk"
-    CreateShortCut "$DESKTOP\LYNX SHARE.lnk" "$INSTDIR\LYNX.exe" "" "$INSTDIR\LYNX.exe" 0
+    CreateShortCut "$DESKTOP\Buzz Beat Studio.lnk" "$INSTDIR\LYNX.exe" "" "$INSTDIR\LYNX.exe" 0
 SectionEnd
 
 Section "$(SecFlp)" SecFlp
@@ -184,8 +184,8 @@ Section "Uninstall"
     RMDir "$INSTDIR"
     Delete "$SMPROGRAMS\LYNX.lnk"
     Delete "$DESKTOP\LYNX.lnk"
-    Delete "$SMPROGRAMS\LYNX SHARE.lnk"
-    Delete "$DESKTOP\LYNX SHARE.lnk"
+    Delete "$SMPROGRAMS\Buzz Beat Studio.lnk"
+    Delete "$DESKTOP\Buzz Beat Studio.lnk"
 
     ; only our own keys and values; .lynx is removed only while it still points at LYNX
     ReadRegStr $0 HKCU "Software\Classes\.lynx" ""
@@ -197,18 +197,18 @@ Section "Uninstall"
     DeleteRegValue HKCU "Software\Classes\.flp\OpenWithProgids" "${FLP_PROGID}"
     ; (the .flp key itself is FL Studio's: left alone)
     DeleteRegKey HKCU "Software\Classes\Applications\LYNX.exe"
-    DeleteRegKey HKCU "Software\LYNX"
+    DeleteRegKey HKCU "Software\BuzzBeatStudio"
     DeleteRegKey HKCU "${UNINST_KEY}"
     System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 SectionEnd
 
-; A silent install (/S) is LYNX SHARE's in-app update (ui/Updater.h, round 166b): it keeps the choices of the install it
+; A silent install (/S) is Buzz Beat Studio's in-app update (ui/Updater.h, round 166b): it keeps the choices of the install it
 ; updates instead of the defaults, so an update never adds a desktop shortcut or the .flp "Open with" entry the user
 ; left out. (Defined after the sections: it names their indices.)
 Function SilentKeepsChoices
     ${If} ${Silent}
         SetShellVarContext current
-        ${IfNot} ${FileExists} "$DESKTOP\LYNX SHARE.lnk"
+        ${IfNot} ${FileExists} "$DESKTOP\Buzz Beat Studio.lnk"
             !insertmacro UnselectSection ${SecDesktop}
         ${EndIf}
         ReadRegStr $0 HKCU "Software\Classes\${FLP_PROGID}" ""
